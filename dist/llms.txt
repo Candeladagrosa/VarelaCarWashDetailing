@@ -1,0 +1,9 @@
+## Pages
+- [Carrito - Varela Car Wash & Detailing](/cart): Revisa tu carrito de compras y finaliza tu pedido de productos premium para el cuidado automotor.
+- [Iniciar Sesión - Varela Car Wash & Detailing](/login): Inicia sesión en tu cuenta de Varela Car Wash para reservar turnos y realizar compras.
+- [Inicio - Varela Car Wash & Detailing](/home): Bienvenido a Varela Car Wash. Servicios premium de lavado y detailing. Reserva tu turno online y compra productos profesionales.
+- [Mi Perfil - Varela Car Wash & Detailing](/profile): Gestiona tu perfil, revisa tus turnos reservados y el historial de compras en Varela Car Wash.
+- [Panel Administrativo - Varela Car Wash](/adminpanel): Panel de administración para gestionar productos, servicios, usuarios y turnos.
+- [Productos - Varela Car Wash & Detailing](/products): Compra productos premium para el cuidado de tu vehículo. Shampoos, ceras, pulidos y más productos profesionales.
+- [Registro - Varela Car Wash & Detailing](/register): Crea tu cuenta en Varela Car Wash para acceder a todos nuestros servicios y productos premium.
+- [Servicios - Varela Car Wash & Detailing](/services): Descubre nuestros servicios premium de car wash y detailing. Reserva tu turno online de forma rápida y sencilla.
