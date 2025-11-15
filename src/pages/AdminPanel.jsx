@@ -59,63 +59,65 @@ const AdminPanel = () => {
           </motion.div>
 
           <Tabs defaultValue={getDefaultTab()} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-8 glass-effect p-2">
-              <PermissionGuard permission="productos.ver_listado">
-                <TabsTrigger value="products" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
-                  <Package className="w-4 h-4 mr-2" />
-                  Productos
-                </TabsTrigger>
-              </PermissionGuard>
+            <div className="glass-effect rounded-lg p-2 overflow-x-auto">
+              <TabsList className="inline-flex w-auto min-w-full flex-nowrap">
+                <PermissionGuard permission="productos.ver_listado">
+                  <TabsTrigger value="products" className="whitespace-nowrap data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
+                    <Package className="w-4 h-4 mr-2" />
+                    Productos
+                  </TabsTrigger>
+                </PermissionGuard>
 
-              <PermissionGuard permission="servicios.ver_listado">
-                <TabsTrigger value="services" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
-                  <Wrench className="w-4 h-4 mr-2" />
-                  Servicios
-                </TabsTrigger>
-              </PermissionGuard>
+                <PermissionGuard permission="servicios.ver_listado">
+                  <TabsTrigger value="services" className="whitespace-nowrap data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
+                    <Wrench className="w-4 h-4 mr-2" />
+                    Servicios
+                  </TabsTrigger>
+                </PermissionGuard>
 
-              <PermissionGuard permission="usuarios.ver_listado">
-                <TabsTrigger value="users" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
-                  <Users className="w-4 h-4 mr-2" />
-                  Usuarios
-                </TabsTrigger>
-              </PermissionGuard>
+                <PermissionGuard permission="usuarios.ver_listado">
+                  <TabsTrigger value="users" className="whitespace-nowrap data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
+                    <Users className="w-4 h-4 mr-2" />
+                    Usuarios
+                  </TabsTrigger>
+                </PermissionGuard>
 
-              <PermissionGuard permission="turnos.ver_listado">
-                <TabsTrigger value="turnos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Turnos
-                </TabsTrigger>
-              </PermissionGuard>
+                <PermissionGuard permission="turnos.ver_listado">
+                  <TabsTrigger value="turnos" className="whitespace-nowrap data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Turnos
+                  </TabsTrigger>
+                </PermissionGuard>
 
-              <PermissionGuard permission="pedidos.ver_listado">
-                <TabsTrigger value="pedidos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
-                  <ShoppingBag className="w-4 h-4 mr-2" />
-                  Pedidos
-                </TabsTrigger>
-              </PermissionGuard>
+                <PermissionGuard permission="pedidos.ver_listado">
+                  <TabsTrigger value="pedidos" className="whitespace-nowrap data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
+                    <ShoppingBag className="w-4 h-4 mr-2" />
+                    Pedidos
+                  </TabsTrigger>
+                </PermissionGuard>
 
-              <PermissionGuard permission="reportes.ver_listado">
-                <TabsTrigger value="reportes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
-                  <FileBarChart className="w-4 h-4 mr-2" />
-                  Reportes
-                </TabsTrigger>
-              </PermissionGuard>
+                <PermissionGuard permission="reportes.ver_listado">
+                  <TabsTrigger value="reportes" className="whitespace-nowrap data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
+                    <FileBarChart className="w-4 h-4 mr-2" />
+                    Reportes
+                  </TabsTrigger>
+                </PermissionGuard>
 
-              <PermissionGuard permission="roles.ver_listado">
-                <TabsTrigger value="roles" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
-                  <Shield className="w-4 h-4 mr-2" />
-                  Roles
-                </TabsTrigger>
-              </PermissionGuard>
+                <PermissionGuard permission="roles.ver_listado">
+                  <TabsTrigger value="roles" className="whitespace-nowrap data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
+                    <Shield className="w-4 h-4 mr-2" />
+                    Roles
+                  </TabsTrigger>
+                </PermissionGuard>
 
-              <PermissionGuard permission="roles.asignar_permisos">
-                <TabsTrigger value="permissions" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
-                  <Key className="w-4 h-4 mr-2" />
-                  Permisos
-                </TabsTrigger>
-              </PermissionGuard>
-            </TabsList>
+                <PermissionGuard permission="roles.asignar_permisos">
+                  <TabsTrigger value="permissions" className="whitespace-nowrap data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-500 data-[state=active]:text-white">
+                    <Key className="w-4 h-4 mr-2" />
+                    Permisos
+                  </TabsTrigger>
+                </PermissionGuard>
+              </TabsList>
+            </div>
 
             <PermissionGuard permission="productos.ver_listado">
               <TabsContent value="products">

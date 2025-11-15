@@ -80,7 +80,7 @@ const ServicesPage = ({ user, setCurrentPage }) => {
 
       toast({
         title: '¡Turno Reservado! 🎉',
-        description: `Tu turno para ${selectedService.nombre} ha sido confirmado`,
+        description: `Tu turno para ${selectedService.nombre} ha sido confirmado para el ${formatDate(bookingData.fecha)} a las ${bookingData.hora}`,
       });
 
       setShowBookingModal(false);
@@ -95,6 +95,22 @@ const ServicesPage = ({ user, setCurrentPage }) => {
       });
       setBookingLoading(false);
     }
+  };
+
+  /**
+   * Formatea una fecha en formato YYYY-MM-DD a formato legible
+   * @param {string} dateString - Fecha en formato YYYY-MM-DD
+   * @returns {string} Fecha formateada
+   */
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const [year, month, day] = dateString.split('-');
+    const _date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    return _date.toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
   };
 
   if (loading) {

@@ -9,34 +9,40 @@ const ServiceCard = ({ service, index, onBook }) => {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
-      whileHover={{ scale: 1.03 }}
-      className="glass-effect rounded-2xl p-6 card-hover overflow-hidden"
+      whileHover={{ scale: 1.03, transition: { duration: 0.1 } }}
+      className="glass-effect rounded-2xl overflow-hidden card-hover flex flex-col"
     >
-      <img src={service.imagen_url || 'https://via.placeholder.com/400x200'} alt={service.nombre} className="w-full h-40 object-cover rounded-lg mb-4" />
-      <div className="mb-4">
+      <div className="h-48 bg-gray-200 flex items-center justify-center">
+        <img 
+          className="w-full h-full object-cover"
+          alt={service.nombre}
+          src={service.imagen_url || "https://images.unsplash.com/photo-1586717056756-6ec619908bd3"} />
+      </div>
+
+      <div className="p-6 flex flex-col flex-grow">
         <h3 className="text-2xl font-bold text-gray-800 mb-2">
           {service.nombre}
         </h3>
-        <p className="text-gray-600">
+        <p className="text-gray-600 mb-4 flex-grow">
           {service.descripcion}
         </p>
-      </div>
 
-      <div className="mb-6">
-        <div className="flex items-baseline space-x-2">
-          <span className="text-4xl font-bold gradient-text">
-            ${service.precio.toLocaleString()}
-          </span>
+        <div className="mt-auto">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-3xl font-bold gradient-text">
+              ${service.precio.toLocaleString()}
+            </span>
+          </div>
+
+          <Button
+            onClick={() => onBook(service)}
+            className="w-full bg-gradient-to-r from-red-700 to-red-500 hover:from-red-800 hover:to-red-600 text-white"
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Reservar Turno
+          </Button>
         </div>
       </div>
-
-      <Button
-        onClick={() => onBook(service)}
-        className="w-full bg-gradient-to-r from-red-700 to-red-500 hover:from-red-800 hover:to-red-600 text-white"
-      >
-        <Calendar className="w-4 h-4 mr-2" />
-        Reservar Turno
-      </Button>
     </motion.div>
   );
 };

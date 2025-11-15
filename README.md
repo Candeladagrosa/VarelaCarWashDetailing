@@ -11,6 +11,7 @@ Plataforma web profesional para servicios de lavado de autos y detailing. Sistem
 - 🛒 **Carrito de compras** con gestión de productos
 - 👤 **Perfil de usuario** personalizado
 - 📜 **Historial** de servicios y compras realizadas
+- 🔐 **Recuperación de contraseña** segura con validaciones robustas
 
 ### Para Administradores
 - 👥 **Gestión de usuarios** y perfiles
@@ -181,6 +182,26 @@ Los permisos se gestionan desde el panel administrativo y se validan tanto en el
 - ✅ Validación de permisos en cada ruta protegida
 - ✅ Tokens JWT para sesiones
 - ✅ HTTPS en producción
+- ✅ **Recuperación de contraseña segura**:
+  - Validación de usuario existente antes de enviar email
+  - Protección contra ataques de enumeración de usuarios
+  - Validación de contraseñas robusta (8+ caracteres, mayúsculas, minúsculas, números, caracteres especiales)
+  - Tokens de recuperación con expiración (1 hora)
+  - Confirmación visual de requisitos de contraseña
+  - Enlaces de un solo uso
+  - Notificaciones por email solo a usuarios registrados
+
+### 📧 Configuración de Recuperación de Contraseña
+
+Para habilitar la recuperación de contraseña, debes configurar las URLs de redirección en Supabase:
+
+1. Ve a tu proyecto en [Supabase Dashboard](https://supabase.com)
+2. `Authentication` > `URL Configuration`
+3. Agrega las siguientes URLs en **Redirect URLs**:
+   - `http://localhost:3000/reset-password` (desarrollo)
+   - `https://tudominio.com/reset-password` (producción)
+
+Para más detalles, consulta la [guía completa de configuración](./docs/CONFIGURACION_RECUPERACION_PASSWORD.md).
 
 ## 📈 Próximas Características
 

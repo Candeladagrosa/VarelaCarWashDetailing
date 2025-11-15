@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
+import { getSupabaseErrorMessage } from '@/lib/errorTranslations';
 
 const AuthContext = createContext(undefined);
 
@@ -97,10 +98,11 @@ export const AuthProvider = ({ children }) => {
     });
 
     if (error && showToast) {
+      const errorMsg = getSupabaseErrorMessage(error);
       toast({
         variant: "destructive",
-        title: "Fallo el registro",
-        description: error.message || "Algo salió mal",
+        title: errorMsg.title,
+        description: errorMsg.description,
       });
     } else if (!error && showToast) {
       toast({
@@ -119,10 +121,11 @@ export const AuthProvider = ({ children }) => {
     });
 
     if (error) {
+      const errorMsg = getSupabaseErrorMessage(error);
       toast({
         variant: "destructive",
-        title: "Fallo el inicio de sesión",
-        description: error.message || "Algo salió mal",
+        title: errorMsg.title,
+        description: errorMsg.description,
       });
     }
 
@@ -133,10 +136,98 @@ export const AuthProvider = ({ children }) => {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
+      const errorMsg = getSupabaseErrorMessage(error);
       toast({
         variant: "destructive",
-        title: "Fallo el cierre de sesión",
-        description: error.message || "Algo salió mal",
+        title: errorMsg.title,
+        description: errorMsg.description,
+      });
+    }
+
+    return { error };
+  }, [toast]);
+
+  /**
+   * Solicita el restablecimiento de contraseña para un email.
+   * Verifica primero si el usuario existe usando una función RPC.
+   * 
+   * @param {string} email - Email del usuario
+   * @returns {Promise<{error: Error|null, userExists: boolean}>}
+   */
+  const resetPassword = useCallback(async (email) => {
+    try {
+      // Verificar si el usuario existe usando función RPC
+      const { data: userExists, error: checkError } = await supabase
+        .rpc('check_user_exists_by_email', { user_email: email });
+
+      if (checkError) {
+        console.error('Error verificando usuario:', checkError);
+        // En caso de error, procedemos de forma segura sin revelar si el usuario existe
+        toast({
+          title: "Solicitud procesada",
+          description: "Si el email está registrado, recibirás un enlace de recuperación.",
+        });
+        return { error: checkError, userExists: false };
+      }
+
+      // Por seguridad, no revelamos si el email existe o no
+      // Mostramos el mismo mensaje en ambos casos para evitar enumeration attacks
+      if (!userExists) {
+        toast({
+          title: "Solicitud procesada",
+          description: "Si el email está registrado, recibirás un enlace de recuperación.",
+        });
+        return { error: null, userExists: false };
+      }
+
+      // Si el usuario existe, proceder con el reset
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        const errorMsg = getSupabaseErrorMessage(error);
+        toast({
+          variant: "destructive",
+          title: errorMsg.title,
+          description: errorMsg.description,
+        });
+        return { error };
+      }
+
+      toast({
+        title: "¡Correo enviado!",
+        description: "Revisa tu bandeja de entrada para restablecer tu contraseña.",
+      });
+
+      return { error: null, userExists: true };
+    } catch (error) {
+      console.error('Error en resetPassword:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Ocurrió un error al procesar tu solicitud. Por favor intenta de nuevo.",
+      });
+      return { error };
+    }
+  }, [toast]);
+
+  const updatePassword = useCallback(async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      const errorMsg = getSupabaseErrorMessage(error);
+      toast({
+        variant: "destructive",
+        title: errorMsg.title,
+        description: errorMsg.description,
+      });
+    } else {
+      toast({
+        title: "¡Contraseña actualizada!",
+        description: "Tu contraseña ha sido actualizada exitosamente.",
       });
     }
 
@@ -153,7 +244,9 @@ export const AuthProvider = ({ children }) => {
     signUp,
     signIn,
     signOut,
-  }), [user, session, loading, profile, role, permissions, signUp, signIn, signOut]);
+    resetPassword,
+    updatePassword,
+  }), [user, session, loading, profile, role, permissions, signUp, signIn, signOut, resetPassword, updatePassword]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

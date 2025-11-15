@@ -4,18 +4,78 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/customSupabaseClient';
+import { useTranslation } from 'react-i18next';
 
 const BookingModal = ({ service, onClose, onConfirm, loading = false }) => {
+  const { t } = useTranslation();
   const [fecha, setFecha] = useState('');
   const [hora, setHora] = useState('');
 
-  const handleSubmit = (e) => {
+  /**
+   * Verifica si ya existe un turno para la fecha y hora seleccionadas
+   * @param {string} fecha - Fecha en formato YYYY-MM-DD
+   * @param {string} hora - Hora en formato HH:MM
+   * @returns {Promise<boolean>} true si el espacio está ocupado
+   */
+  const checkSlotAvailability = async (fecha, hora) => {
+    const { data, error } = await supabase
+      .from('turnos')
+      .select('id_turno')
+      .eq('fecha', fecha)
+      .eq('hora', hora)
+      .in('estado', ['Pendiente', 'Confirmado']); // Estados con mayúscula como en DB
+
+    if (error) {
+      console.error('Error verificando disponibilidad:', error);
+      return false; // En caso de error, permitir la reserva
+    }
+
+    return data && data.length > 0;
+  };
+
+  /**
+   * Valida que la fecha y hora sean futuras
+   * @param {string} fecha - Fecha en formato YYYY-MM-DD
+   * @param {string} hora - Hora en formato HH:MM
+   * @returns {boolean} true si es válido
+   */
+  const validateDateTime = (fecha, hora) => {
+    const _selectedDateTime = new Date(`${fecha}T${hora}`);
+    const _now = new Date();
+    
+    return _selectedDateTime > _now;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Validar campos requeridos
     if (!fecha || !hora) {
       toast({
-        title: 'Error',
-        description: 'Por favor completa todos los campos',
+        title: t('errors.titles.validationError'),
+        description: t('bookings.validation.dateRequired'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validar que la fecha/hora sea futura
+    if (!validateDateTime(fecha, hora)) {
+      toast({
+        title: t('errors.titles.validationError'),
+        description: t('bookings.validation.pastDateTime'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Verificar disponibilidad del espacio temporal
+    const _isSlotTaken = await checkSlotAvailability(fecha, hora);
+    if (_isSlotTaken) {
+      toast({
+        title: t('errors.titles.validationError'),
+        description: t('bookings.validation.slotTaken'),
         variant: 'destructive',
       });
       return;
@@ -43,7 +103,7 @@ const BookingModal = ({ service, onClose, onConfirm, loading = false }) => {
           className="glass-effect rounded-2xl p-8 max-w-md w-full"
         >
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold gradient-text">Reservar Turno</h2>
+            <h2 className="text-3xl font-bold gradient-text">{t('bookings.title')}</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -56,7 +116,7 @@ const BookingModal = ({ service, onClose, onConfirm, loading = false }) => {
             <h3 className="font-bold text-lg mb-1">{service.nombre}</h3>
             <p className="text-gray-600 text-sm mb-2">{service.descripcion}</p>
             <p className="text-2xl font-bold gradient-text">
-              ${service.precio.toLocaleString()}
+              ${service.precio.toLocaleString('es-AR')}
             </p>
           </div>
 
@@ -64,7 +124,7 @@ const BookingModal = ({ service, onClose, onConfirm, loading = false }) => {
             <div>
               <label className="block text-sm font-medium mb-2 flex items-center space-x-2">
                 <Calendar className="w-4 h-4" />
-                <span>Fecha</span>
+                <span>{t('bookings.selectDate')}</span>
               </label>
               <input
                 type="date"
@@ -79,7 +139,7 @@ const BookingModal = ({ service, onClose, onConfirm, loading = false }) => {
             <div>
               <label className="block text-sm font-medium mb-2 flex items-center space-x-2">
                 <Clock className="w-4 h-4" />
-                <span>Hora</span>
+                <span>{t('bookings.selectTime')}</span>
               </label>
               <select
                 value={hora}
@@ -108,14 +168,14 @@ const BookingModal = ({ service, onClose, onConfirm, loading = false }) => {
                 className="flex-1"
                 disabled={loading}
               >
-                Cancelar
+                {t('bookings.cancel')}
               </Button>
-                            <Button
+              <Button
                 type="submit"
                 disabled={loading}
                 className="flex-1 bg-gradient-to-r from-red-700 to-red-900 hover:from-red-800 hover:to-red-950"
               >
-                {loading ? 'Procesando...' : 'Confirmar'}
+                {loading ? t('common.loading') : t('bookings.confirm')}
               </Button>
             </div>
           </form>

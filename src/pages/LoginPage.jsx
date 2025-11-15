@@ -70,10 +70,18 @@ const LoginPage = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 flex items-center space-x-2">
-                <Lock className="w-4 h-4" />
-                <span>Contraseña</span>
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium flex items-center space-x-2">
+                  <Lock className="w-4 h-4" />
+                  <span>Contraseña</span>
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-red-600 hover:text-red-700 font-medium hover:underline"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
               <input
                 type="password"
                 value={password}

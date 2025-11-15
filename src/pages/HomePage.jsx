@@ -136,7 +136,7 @@ const HomePage = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.2 }}
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.05, transition: { duration: 0.1 } }}
                   className="glass-effect p-8 rounded-2xl card-hover"
                 >
                   <div className={`w-16 h-16 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center mb-6 shadow-lg`}>

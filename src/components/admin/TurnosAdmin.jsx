@@ -20,6 +20,26 @@ const TurnosAdmin = () => {
     loadTurnos();
   }, []);
 
+  /**
+   * Formatea una fecha en formato legible
+   * Parsea la fecha como UTC para evitar problemas de zona horaria
+   * @param {string} dateString - Fecha en formato YYYY-MM-DD
+   * @returns {string} Fecha formateada
+   */
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    
+    // Parsear la fecha manualmente para evitar conversión de zona horaria
+    const [year, month, day] = dateString.split('T')[0].split('-');
+    const _date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    return _date.toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
   const loadTurnos = async () => {
     setLoading(true);
     
@@ -194,7 +214,7 @@ const TurnosAdmin = () => {
                     </div>
                   ) : (
                     <div className="flex flex-wrap gap-4 text-gray-600 mt-1">
-                      <div className="flex items-center space-x-2"><Calendar className="w-4 h-4" /><span>{new Date(turno.fecha).toLocaleDateString()}</span></div>
+                      <div className="flex items-center space-x-2"><Calendar className="w-4 h-4" /><span>{formatDate(turno.fecha)}</span></div>
                       <div className="flex items-center space-x-2"><Clock className="w-4 h-4" /><span>{turno.hora}</span></div>
                     </div>
                   )}

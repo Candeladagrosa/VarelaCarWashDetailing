@@ -129,10 +129,18 @@ export default function HistoryPage() {
 
   /**
    * Formatea la fecha en formato legible
+   * Parsea la fecha como UTC para evitar problemas de zona horaria
+   * @param {string} dateString - Fecha en formato YYYY-MM-DD
+   * @returns {string} Fecha formateada
    */
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-AR', {
+    if (!dateString) return '';
+    
+    // Parsear la fecha manualmente para evitar problemas de zona horaria
+    const [year, month, day] = dateString.split('T')[0].split('-');
+    const _date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    return _date.toLocaleDateString('es-AR', {
       day: '2-digit',
       month: 'long',
       year: 'numeric'

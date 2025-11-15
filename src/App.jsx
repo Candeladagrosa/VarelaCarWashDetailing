@@ -13,6 +13,8 @@ import HistoryPage from '@/pages/HistoryPage';
 import AdminPanel from '@/pages/AdminPanel';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { supabase } from './lib/customSupabaseClient';
 
@@ -150,6 +152,8 @@ function App() {
               />
               <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/" />} />
               <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/" />} />
+              <Route path="/forgot-password" element={!user ? <ForgotPasswordPage /> : <Navigate to="/" />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
             </Routes>
           </main>
         </div>
