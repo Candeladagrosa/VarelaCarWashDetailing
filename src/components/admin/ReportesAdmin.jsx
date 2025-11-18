@@ -13,7 +13,9 @@ import {
   TrendingUp,
   BarChart3,
   DollarSign,
-  ShoppingCart
+  ShoppingCart,
+  Shield,
+  Filter
 } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
@@ -27,7 +29,8 @@ import {
   formatTurnosPorDiaParaExcel,
   formatTurnosPorServicioParaExcel,
   formatIngresosPorPeriodoParaExcel,
-  formatUnidadesVendidasParaExcel
+  formatUnidadesVendidasParaExcel,
+  formatAuditoriaParaExcel
 } from '@/lib/exportUtils';
 
 /**
@@ -37,12 +40,61 @@ import {
 const ReportesAdmin = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState({});
+  const [showFilters, setShowFilters] = useState({});
+  
+  // Filtros genéricos de fecha para todos los reportes
+  const [filtrosFecha, setFiltrosFecha] = useState({
+    productos: { fecha_desde: '', fecha_hasta: '' },
+    servicios: { fecha_desde: '', fecha_hasta: '' },
+    turnos: { fecha_desde: '', fecha_hasta: '' },
+    pedidos: { fecha_desde: '', fecha_hasta: '' },
+    turnos_dia: { fecha_desde: '', fecha_hasta: '' },
+    turnos_servicio: { fecha_desde: '', fecha_hasta: '' },
+    ingresos: { fecha_desde: '', fecha_hasta: '' },
+    unidades: { fecha_desde: '', fecha_hasta: '' },
+  });
+  
+  // Filtros específicos de auditoría
+  const [auditoriaFilters, setAuditoriaFilters] = useState({
+    usuario_id: '',
+    fecha_desde: '',
+    fecha_hasta: '',
+    accion: '',
+    tabla: '',
+  });
 
   /**
    * Establece el estado de carga para un reporte específico
    */
   const setReportLoading = (reportName, isLoading) => {
     setLoading(prev => ({ ...prev, [reportName]: isLoading }));
+  };
+
+  /**
+   * Alterna la visibilidad de filtros para un reporte específico
+   */
+  const toggleFilters = (reportId) => {
+    setShowFilters(prev => ({ ...prev, [reportId]: !prev[reportId] }));
+  };
+
+  /**
+   * Actualiza los filtros de fecha para un reporte específico
+   */
+  const updateFiltrosFecha = (reportId, campo, valor) => {
+    setFiltrosFecha(prev => ({
+      ...prev,
+      [reportId]: { ...prev[reportId], [campo]: valor }
+    }));
+  };
+
+  /**
+   * Limpia los filtros de fecha para un reporte específico
+   */
+  const limpiarFiltrosFecha = (reportId) => {
+    setFiltrosFecha(prev => ({
+      ...prev,
+      [reportId]: { fecha_desde: '', fecha_hasta: '' }
+    }));
   };
 
   /**
@@ -145,7 +197,7 @@ const ReportesAdmin = () => {
       setReportLoading('turnos', true);
 
       // 1. Cargar turnos con servicios (igual que TurnosAdmin)
-      const { data: turnosData, error: turnosError } = await supabase
+      let query = supabase
         .from('turnos')
         .select(`
           *,
@@ -153,8 +205,19 @@ const ReportesAdmin = () => {
             nombre,
             precio
           )
-        `)
-        .order('created_at', { ascending: false });
+        `);
+
+      // Aplicar filtros de fecha (usando el campo 'fecha' de turnos)
+      if (filtrosFecha.turnos.fecha_desde) {
+        query = query.gte('fecha', filtrosFecha.turnos.fecha_desde);
+      }
+      if (filtrosFecha.turnos.fecha_hasta) {
+        query = query.lte('fecha', filtrosFecha.turnos.fecha_hasta);
+      }
+
+      query = query.order('created_at', { ascending: false });
+
+      const { data: turnosData, error: turnosError } = await query;
 
       if (turnosError) throw turnosError;
 
@@ -223,7 +286,7 @@ const ReportesAdmin = () => {
       setReportLoading('pedidos', true);
 
       // Query que coincide con la estructura de PedidosAdmin
-      const { data, error } = await supabase
+      let query = supabase
         .from('pedidos')
         .select(`
           *,
@@ -236,8 +299,19 @@ const ReportesAdmin = () => {
               nombre
             )
           )
-        `)
-        .order('created_at', { ascending: false });
+        `);
+
+      // Aplicar filtros de fecha
+      if (filtrosFecha.pedidos.fecha_desde) {
+        query = query.gte('fecha_pedido', `${filtrosFecha.pedidos.fecha_desde}T00:00:00`);
+      }
+      if (filtrosFecha.pedidos.fecha_hasta) {
+        query = query.lte('fecha_pedido', `${filtrosFecha.pedidos.fecha_hasta}T23:59:59`);
+      }
+
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -280,18 +354,33 @@ const ReportesAdmin = () => {
     try {
       setReportLoading('turnos_dia', true);
 
-      // Obtener fecha de hace 30 días
-      const fechaInicio = new Date();
-      fechaInicio.setDate(fechaInicio.getDate() - 30);
+      // Determinar rango de fechas
+      let fechaInicio;
+      if (filtrosFecha.turnos_dia.fecha_desde) {
+        fechaInicio = filtrosFecha.turnos_dia.fecha_desde;
+      } else {
+        // Por defecto, hace 30 días
+        const fecha = new Date();
+        fecha.setDate(fecha.getDate() - 30);
+        fechaInicio = fecha.toISOString().split('T')[0];
+      }
 
-      const { data: turnos, error } = await supabase
+      let query = supabase
         .from('turnos')
         .select(`
           *,
           servicios (precio)
         `)
-        .gte('fecha', fechaInicio.toISOString().split('T')[0])
-        .order('fecha', { ascending: true });
+        .gte('fecha', fechaInicio);
+
+      // Aplicar fecha hasta si está definida
+      if (filtrosFecha.turnos_dia.fecha_hasta) {
+        query = query.lte('fecha', filtrosFecha.turnos_dia.fecha_hasta);
+      }
+
+      query = query.order('fecha', { ascending: true });
+
+      const { data: turnos, error } = await query;
 
       if (error) throw error;
 
@@ -374,7 +463,7 @@ const ReportesAdmin = () => {
       setReportLoading('turnos_servicio', true);
 
       // Obtener todos los turnos con servicios
-      const { data: turnos, error } = await supabase
+      let query = supabase
         .from('turnos')
         .select(`
           *,
@@ -383,8 +472,19 @@ const ReportesAdmin = () => {
             nombre,
             precio
           )
-        `)
-        .order('created_at', { ascending: false });
+        `);
+
+      // Aplicar filtros de fecha
+      if (filtrosFecha.turnos_servicio.fecha_desde) {
+        query = query.gte('fecha', filtrosFecha.turnos_servicio.fecha_desde);
+      }
+      if (filtrosFecha.turnos_servicio.fecha_hasta) {
+        query = query.lte('fecha', filtrosFecha.turnos_servicio.fecha_hasta);
+      }
+
+      query = query.order('created_at', { ascending: false });
+
+      const { data: turnos, error } = await query;
 
       if (error) throw error;
 
@@ -476,24 +576,44 @@ const ReportesAdmin = () => {
     try {
       setReportLoading('ingresos', true);
 
-      // Obtener turnos realizados
-      const { data: turnos, error: turnosError } = await supabase
+      // Obtener turnos realizados con filtros de fecha
+      let turnosQuery = supabase
         .from('turnos')
         .select(`
           *,
           servicios (precio)
         `)
-        .eq('estado', 'Realizado')
-        .order('fecha', { ascending: true });
+        .eq('estado', 'Realizado');
+
+      if (filtrosFecha.ingresos.fecha_desde) {
+        turnosQuery = turnosQuery.gte('fecha', filtrosFecha.ingresos.fecha_desde);
+      }
+      if (filtrosFecha.ingresos.fecha_hasta) {
+        turnosQuery = turnosQuery.lte('fecha', filtrosFecha.ingresos.fecha_hasta);
+      }
+
+      turnosQuery = turnosQuery.order('fecha', { ascending: true });
+
+      const { data: turnos, error: turnosError } = await turnosQuery;
 
       if (turnosError) throw turnosError;
 
-      // Obtener pedidos pagados
-      const { data: pedidos, error: pedidosError } = await supabase
+      // Obtener pedidos pagados con filtros de fecha
+      let pedidosQuery = supabase
         .from('pedidos')
         .select('*')
-        .eq('estado_pago', 'Pagado')
-        .order('fecha_pedido', { ascending: true });
+        .eq('estado_pago', 'Pagado');
+
+      if (filtrosFecha.ingresos.fecha_desde) {
+        pedidosQuery = pedidosQuery.gte('fecha_pedido', `${filtrosFecha.ingresos.fecha_desde}T00:00:00`);
+      }
+      if (filtrosFecha.ingresos.fecha_hasta) {
+        pedidosQuery = pedidosQuery.lte('fecha_pedido', `${filtrosFecha.ingresos.fecha_hasta}T23:59:59`);
+      }
+
+      pedidosQuery = pedidosQuery.order('fecha_pedido', { ascending: true });
+
+      const { data: pedidos, error: pedidosError } = await pedidosQuery;
 
       if (pedidosError) throw pedidosError;
 
@@ -628,13 +748,27 @@ const ReportesAdmin = () => {
     try {
       setReportLoading('unidades', true);
 
-      // Obtener fecha del primer día del mes
+      // Determinar rango de fechas
+      let fechaInicio, fechaFin;
       const hoy = new Date();
-      const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-      const diasDelMes = Math.ceil((hoy - primerDiaMes) / (1000 * 60 * 60 * 24)) || 1;
+      
+      if (filtrosFecha.unidades.fecha_desde) {
+        fechaInicio = new Date(filtrosFecha.unidades.fecha_desde);
+      } else {
+        // Por defecto, primer día del mes
+        fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      }
 
-      // Obtener pedidos del mes
-      const { data: pedidos, error: pedidosError } = await supabase
+      if (filtrosFecha.unidades.fecha_hasta) {
+        fechaFin = new Date(filtrosFecha.unidades.fecha_hasta);
+      } else {
+        fechaFin = hoy;
+      }
+
+      const diasDelPeriodo = Math.ceil((fechaFin - fechaInicio) / (1000 * 60 * 60 * 24)) || 1;
+
+      // Obtener pedidos del período
+      let query = supabase
         .from('pedidos')
         .select(`
           *,
@@ -649,8 +783,15 @@ const ReportesAdmin = () => {
             )
           )
         `)
-        .gte('fecha_pedido', primerDiaMes.toISOString())
-        .order('fecha_pedido', { ascending: false });
+        .gte('fecha_pedido', fechaInicio.toISOString());
+
+      if (filtrosFecha.unidades.fecha_hasta) {
+        query = query.lte('fecha_pedido', `${filtrosFecha.unidades.fecha_hasta}T23:59:59`);
+      }
+
+      query = query.order('fecha_pedido', { ascending: false });
+
+      const { data: pedidos, error: pedidosError } = await query;
 
       if (pedidosError) throw pedidosError;
 
@@ -697,7 +838,7 @@ const ReportesAdmin = () => {
       // Calcular métricas
       const unidadesVendidas = Object.values(productosMap).map(producto => {
         const porcentaje = ((producto.unidadesVendidas / totalUnidades) * 100).toFixed(2);
-        const promedioDiario = (producto.unidadesVendidas / diasDelMes).toFixed(2);
+        const promedioDiario = (producto.unidadesVendidas / diasDelPeriodo).toFixed(2);
         
         // Estado de stock
         let estadoStock = 'Normal';
@@ -743,6 +884,134 @@ const ReportesAdmin = () => {
   };
 
   /**
+   * Exporta el registro de auditoría con filtros opcionales
+   */
+  const exportarAuditoria = async () => {
+    try {
+      setReportLoading('auditoria', true);
+
+      // 1. Construir query base para auditoría
+      let query = supabase
+        .from('auditoria')
+        .select('*')
+        .order('creado_en', { ascending: false });
+
+      // Aplicar filtros
+      if (auditoriaFilters.usuario_id) {
+        query = query.eq('usuario_id', auditoriaFilters.usuario_id);
+      }
+
+      if (auditoriaFilters.fecha_desde) {
+        query = query.gte('creado_en', `${auditoriaFilters.fecha_desde}T00:00:00`);
+      }
+
+      if (auditoriaFilters.fecha_hasta) {
+        query = query.lte('creado_en', `${auditoriaFilters.fecha_hasta}T23:59:59`);
+      }
+
+      if (auditoriaFilters.accion) {
+        query = query.eq('accion', auditoriaFilters.accion);
+      }
+
+      if (auditoriaFilters.tabla) {
+        query = query.eq('tabla', auditoriaFilters.tabla);
+      }
+
+      const { data: auditoriaData, error: auditoriaError } = await query;
+
+      if (auditoriaError) throw auditoriaError;
+
+      if (!auditoriaData || auditoriaData.length === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Sin datos',
+          description: 'No hay registros de auditoría para exportar con los filtros seleccionados',
+        });
+        return;
+      }
+
+      // 2. Obtener IDs únicos de usuarios
+      const usuariosIds = [...new Set(auditoriaData.map(r => r.usuario_id).filter(Boolean))];
+
+      // 3. Cargar datos de perfiles de usuarios
+      let perfilesMap = {};
+      if (usuariosIds.length > 0) {
+        const { data: perfilesData, error: perfilesError } = await supabase
+          .from('perfiles')
+          .select('id, nombre, apellido')
+          .in('id', usuariosIds);
+
+        if (!perfilesError && perfilesData) {
+          // Crear un mapa de perfiles para acceso rápido
+          perfilesData.forEach(p => {
+            perfilesMap[p.id] = p;
+          });
+        }
+      }
+
+      // 4. Obtener emails de los usuarios usando función RPC
+      const emailsMap = {};
+      if (usuariosIds.length > 0) {
+        try {
+          const { data: emailsData, error: emailsError } = await supabase
+            .rpc('get_users_emails', { user_ids: usuariosIds });
+          
+          if (!emailsError && emailsData) {
+            emailsData.forEach(item => {
+              emailsMap[item.id] = item.email;
+            });
+          }
+        } catch (err) {
+          console.warn('No se pudieron obtener los emails de los usuarios:', err);
+        }
+      }
+
+      // 5. Combinar datos de auditoría con perfiles y emails
+      const auditoriaConPerfiles = auditoriaData.map(registro => ({
+        ...registro,
+        perfiles: registro.usuario_id && perfilesMap[registro.usuario_id] ? {
+          ...perfilesMap[registro.usuario_id],
+          email: emailsMap[registro.usuario_id] || null
+        } : null
+      }));
+
+      const formatted = formatAuditoriaParaExcel(auditoriaConPerfiles);
+      const success = exportToExcel(formatted, 'Auditoria', 'Auditoría');
+
+      if (success) {
+        toast({
+          title: 'Exportación exitosa',
+          description: `Se exportaron ${auditoriaData.length} registros de auditoría`,
+        });
+      } else {
+        throw new Error('Error al generar el archivo');
+      }
+    } catch (error) {
+      console.error('Error exportando auditoría:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo exportar el registro de auditoría',
+      });
+    } finally {
+      setReportLoading('auditoria', false);
+    }
+  };
+
+  /**
+   * Limpia los filtros de auditoría
+   */
+  const limpiarFiltrosAuditoria = () => {
+    setAuditoriaFilters({
+      usuario_id: '',
+      fecha_desde: '',
+      fecha_hasta: '',
+      accion: '',
+      tabla: '',
+    });
+  };
+
+  /**
    * Configuración de reportes disponibles
    */
   const reportes = [
@@ -784,6 +1053,7 @@ const ReportesAdmin = () => {
       permission: 'reportes.exportar_turnos',
       onClick: exportarTurnos,
       categoria: 'Exportaciones Básicas',
+      hasFilters: true,
     },
     {
       id: 'pedidos',
@@ -796,6 +1066,7 @@ const ReportesAdmin = () => {
       permission: 'reportes.exportar_pedidos',
       onClick: exportarPedidos,
       categoria: 'Exportaciones Básicas',
+      hasFilters: true,
     },
 
     // ============================================
@@ -804,7 +1075,7 @@ const ReportesAdmin = () => {
     {
       id: 'turnos_dia',
       nombre: 'Turnos por Día',
-      descripcion: 'Análisis de turnos agrupados por día con tasas de ocupación (últimos 30 días)',
+      descripcion: 'Análisis de turnos agrupados por día con tasas de ocupación',
       icon: Calendar,
       color: 'from-indigo-600 to-indigo-500',
       bgColor: 'bg-indigo-50',
@@ -812,6 +1083,7 @@ const ReportesAdmin = () => {
       permission: 'reportes.turnos_por_dia',
       onClick: exportarTurnosPorDia,
       categoria: 'Reportes Analíticos',
+      hasFilters: true,
     },
     {
       id: 'turnos_servicio',
@@ -824,6 +1096,7 @@ const ReportesAdmin = () => {
       permission: 'reportes.turnos_por_servicio',
       onClick: exportarTurnosPorServicio,
       categoria: 'Reportes Analíticos',
+      hasFilters: true,
     },
     {
       id: 'ingresos',
@@ -836,11 +1109,13 @@ const ReportesAdmin = () => {
       permission: 'reportes.ingresos_periodo',
       onClick: exportarIngresosPorPeriodo,
       categoria: 'Reportes Analíticos',
+      hasFilters: true,
     },
     {
       id: 'unidades',
-      nombre: 'Unidades Vendidas (Mes Actual)',
-      descripcion: 'Ranking de productos más vendidos del mes con análisis de stock',
+      nombre: 'Unidades Vendidas',
+      descripcion: 'Ranking de productos más vendidos con análisis de stock (configurable por período)',
+      hasFilters: true,
       icon: ShoppingCart,
       color: 'from-rose-600 to-rose-500',
       bgColor: 'bg-rose-50',
@@ -848,6 +1123,23 @@ const ReportesAdmin = () => {
       permission: 'reportes.unidades_vendidas',
       onClick: exportarUnidadesVendidas,
       categoria: 'Reportes Analíticos',
+    },
+
+    // ============================================
+    // FASE 3: Auditoría y Seguridad
+    // ============================================
+    {
+      id: 'auditoria',
+      nombre: 'Registro de Auditoría',
+      descripcion: 'Exporta el historial completo de cambios en el sistema con filtros',
+      icon: Shield,
+      color: 'from-slate-600 to-slate-500',
+      bgColor: 'bg-slate-50',
+      iconColor: 'text-slate-600',
+      permission: 'reportes.auditoria',
+      onClick: exportarAuditoria,
+      categoria: 'Auditoría y Seguridad',
+      hasFilters: true,
     },
   ];
 
@@ -913,6 +1205,66 @@ const ReportesAdmin = () => {
                         </p>
                       </div>
                     </div>
+
+                    {/* Botón para mostrar/ocultar filtros */}
+                    {reporte.hasFilters && (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => toggleFilters(reporte.id)}
+                        className="w-full mb-4 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center justify-center space-x-2 hover:bg-gray-200 transition-all"
+                      >
+                        <Filter className="w-4 h-4" />
+                        <span>{showFilters[reporte.id] ? 'Ocultar Filtros' : 'Mostrar Filtros'}</span>
+                      </motion.button>
+                    )}
+
+                    {/* Filtros de Fecha */}
+                    {reporte.hasFilters && showFilters[reporte.id] && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200"
+                      >
+                        <h4 className="text-sm font-bold text-gray-700 mb-3">Filtros de fecha</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Fecha Desde */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Fecha Desde
+                            </label>
+                            <input
+                              type="date"
+                              value={filtrosFecha[reporte.id]?.fecha_desde || ''}
+                              onChange={(e) => updateFiltrosFecha(reporte.id, 'fecha_desde', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+
+                          {/* Fecha Hasta */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Fecha Hasta
+                            </label>
+                            <input
+                              type="date"
+                              value={filtrosFecha[reporte.id]?.fecha_hasta || ''}
+                              onChange={(e) => updateFiltrosFecha(reporte.id, 'fecha_hasta', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Botón limpiar filtros */}
+                        <button
+                          onClick={() => limpiarFiltrosFecha(reporte.id)}
+                          className="mt-3 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          Limpiar filtros
+                        </button>
+                      </motion.div>
+                    )}
 
                     {/* Botón de exportación */}
                     <motion.button
@@ -981,6 +1333,66 @@ const ReportesAdmin = () => {
                       </div>
                     </div>
 
+                    {/* Botón para mostrar/ocultar filtros */}
+                    {reporte.hasFilters && (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => toggleFilters(reporte.id)}
+                        className="w-full mb-4 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center justify-center space-x-2 hover:bg-gray-200 transition-all"
+                      >
+                        <Filter className="w-4 h-4" />
+                        <span>{showFilters[reporte.id] ? 'Ocultar Filtros' : 'Mostrar Filtros'}</span>
+                      </motion.button>
+                    )}
+
+                    {/* Filtros de Fecha */}
+                    {reporte.hasFilters && showFilters[reporte.id] && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200"
+                      >
+                        <h4 className="text-sm font-bold text-gray-700 mb-3">Filtros de fecha</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Fecha Desde */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Fecha Desde
+                            </label>
+                            <input
+                              type="date"
+                              value={filtrosFecha[reporte.id]?.fecha_desde || ''}
+                              onChange={(e) => updateFiltrosFecha(reporte.id, 'fecha_desde', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                            />
+                          </div>
+
+                          {/* Fecha Hasta */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Fecha Hasta
+                            </label>
+                            <input
+                              type="date"
+                              value={filtrosFecha[reporte.id]?.fecha_hasta || ''}
+                              onChange={(e) => updateFiltrosFecha(reporte.id, 'fecha_hasta', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Botón limpiar filtros */}
+                        <button
+                          onClick={() => limpiarFiltrosFecha(reporte.id)}
+                          className="mt-3 text-xs text-cyan-600 hover:text-cyan-800 font-medium"
+                        >
+                          Limpiar filtros
+                        </button>
+                      </motion.div>
+                    )}
+
                     {/* Botón de exportación */}
                     <motion.button
                       whileHover={{ scale: isLoading ? 1 : 1.02 }}
@@ -1006,6 +1418,209 @@ const ReportesAdmin = () => {
                     <div className="mt-3 flex items-center justify-center text-xs text-gray-500">
                       <FileSpreadsheet className="w-4 h-4 mr-1" />
                       <span>Análisis en XLSX</span>
+                    </div>
+                  </motion.div>
+                </PermissionGuard>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Auditoría y Seguridad */}
+        <div>
+          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+            <Shield className="w-5 h-5 mr-2 text-red-500" />
+            Auditoría y Seguridad
+          </h3>
+          <div className="grid grid-cols-1 gap-6">
+            {reportes.filter(r => r.categoria === 'Auditoría y Seguridad').map((reporte, index) => {
+              const Icon = reporte.icon;
+              const isLoading = loading[reporte.id];
+
+              return (
+                <PermissionGuard 
+                  key={reporte.id} 
+                  permission={reporte.permission}
+                  fallback={
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="bg-yellow-50 border border-yellow-200 rounded-xl p-6"
+                    >
+                      <div className="flex items-start space-x-4">
+                        <div className="w-14 h-14 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <Shield className="w-7 h-7 text-yellow-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-gray-900 mb-1">
+                            {reporte.nombre}
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-3">
+                            {reporte.descripcion}
+                          </p>
+                          <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3">
+                            <p className="text-sm text-yellow-800 font-medium">
+                              ⚠️ No tienes permisos para acceder a esta funcionalidad
+                            </p>
+                            <p className="text-xs text-yellow-700 mt-1">
+                              Permiso requerido: <code className="bg-yellow-200 px-1 rounded">{reporte.permission}</code>
+                            </p>
+                            <p className="text-xs text-yellow-700 mt-2">
+                              Para habilitar este reporte, ejecuta el script: <code className="bg-yellow-200 px-1 rounded">docs/sql/add_auditoria_permission.sql</code>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  }
+                >
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all"
+                  >
+                    {/* Icono y título */}
+                    <div className="flex items-start space-x-4 mb-4">
+                      <div className={`w-14 h-14 ${reporte.bgColor} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                        <Icon className={`w-7 h-7 ${reporte.iconColor}`} />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">
+                          {reporte.nombre}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {reporte.descripcion}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Botón para mostrar/ocultar filtros */}
+                    {reporte.hasFilters && (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => toggleFilters('auditoria')}
+                        className="w-full mb-4 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center justify-center space-x-2 hover:bg-gray-200 transition-all"
+                      >
+                        <Filter className="w-4 h-4" />
+                        <span>{showFilters['auditoria'] ? 'Ocultar Filtros' : 'Mostrar Filtros'}</span>
+                      </motion.button>
+                    )}
+
+                    {/* Filtros de Auditoría */}
+                    {reporte.hasFilters && showFilters['auditoria'] && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200"
+                      >
+                        <h4 className="text-sm font-bold text-gray-700 mb-3">Filtros de búsqueda</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Fecha Desde */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Fecha Desde
+                            </label>
+                            <input
+                              type="date"
+                              value={auditoriaFilters.fecha_desde}
+                              onChange={(e) => setAuditoriaFilters({ ...auditoriaFilters, fecha_desde: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                            />
+                          </div>
+
+                          {/* Fecha Hasta */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Fecha Hasta
+                            </label>
+                            <input
+                              type="date"
+                              value={auditoriaFilters.fecha_hasta}
+                              onChange={(e) => setAuditoriaFilters({ ...auditoriaFilters, fecha_hasta: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                            />
+                          </div>
+
+                          {/* Tipo de Acción */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Tipo de Acción
+                            </label>
+                            <select
+                              value={auditoriaFilters.accion}
+                              onChange={(e) => setAuditoriaFilters({ ...auditoriaFilters, accion: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                            >
+                              <option value="">Todas las acciones</option>
+                              <option value="INSERT">Creación</option>
+                              <option value="UPDATE">Modificación</option>
+                              <option value="DELETE">Eliminación</option>
+                            </select>
+                          </div>
+
+                          {/* Entidad */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Entidad
+                            </label>
+                            <select
+                              value={auditoriaFilters.tabla}
+                              onChange={(e) => setAuditoriaFilters({ ...auditoriaFilters, tabla: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                            >
+                              <option value="">Todas las entidades</option>
+                              <option value="roles">Roles</option>
+                              <option value="perfiles">Perfiles/Usuarios</option>
+                              <option value="permisos">Permisos</option>
+                              <option value="rol_permisos">Permisos de Roles</option>
+                              <option value="turnos">Turnos</option>
+                              <option value="pedidos">Pedidos</option>
+                              <option value="productos">Productos</option>
+                              <option value="servicios">Servicios</option>
+                              <option value="pedido_productos">Detalle de Pedidos</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Botón limpiar filtros */}
+                        <button
+                          onClick={limpiarFiltrosAuditoria}
+                          className="mt-3 text-xs text-slate-600 hover:text-slate-800 font-medium"
+                        >
+                          Limpiar filtros
+                        </button>
+                      </motion.div>
+                    )}
+
+                    {/* Botón de exportación */}
+                    <motion.button
+                      whileHover={{ scale: isLoading ? 1 : 1.02 }}
+                      whileTap={{ scale: isLoading ? 1 : 0.98 }}
+                      onClick={reporte.onClick}
+                      disabled={isLoading}
+                      className={`w-full bg-gradient-to-r ${reporte.color} text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>Exportando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-5 h-5" />
+                          <span>Exportar Auditoría</span>
+                        </>
+                      )}
+                    </motion.button>
+
+                    {/* Formato del archivo */}
+                    <div className="mt-3 flex items-center justify-center text-xs text-gray-500">
+                      <FileSpreadsheet className="w-4 h-4 mr-1" />
+                      <span>Formato: XLSX (Excel)</span>
                     </div>
                   </motion.div>
                 </PermissionGuard>

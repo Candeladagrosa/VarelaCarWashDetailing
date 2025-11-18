@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, Check, X, Search, Edit, Save, Loader2 } from 'lucide-react';
+import { Calendar, Clock, Check, X, Search, Edit, Save, Loader2, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -204,7 +204,19 @@ const TurnosAdmin = () => {
                   {perfil && (
                     <div className="text-gray-500 text-sm space-y-1 mt-1">
                       {perfil.dni && <p>DNI: {perfil.dni}</p>}
-                      {perfil.telefono && <p>Tel: {perfil.telefono}</p>}
+                      {perfil.telefono && (
+                        <div className="flex items-center space-x-2">
+                          <Phone className="w-3 h-3" />
+                          <a 
+                            href={`https://wa.me/${perfil.telefono.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-600 hover:text-green-700 hover:underline transition-colors"
+                          >
+                            {perfil.telefono}
+                          </a>
+                        </div>
+                      )}
                     </div>
                   )}
                   {isEditing ? (

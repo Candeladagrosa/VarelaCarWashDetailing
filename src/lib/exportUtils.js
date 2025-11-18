@@ -288,3 +288,130 @@ export const formatUnidadesVendidasParaExcel = (unidadesVendidas) => {
       'Tendencia': producto.tendencia,
     }));
 };
+
+/**
+ * Traduce el tipo de acción de auditoría
+ * @param {string} accion - Acción en inglés (INSERT, UPDATE, DELETE)
+ * @returns {string} - Acción en español
+ */
+const traducirAccion = (accion) => {
+  const acciones = {
+    'INSERT': 'Creación',
+    'UPDATE': 'Modificación',
+    'DELETE': 'Eliminación'
+  };
+  return acciones[accion] || accion;
+};
+
+/**
+ * Traduce el nombre de la tabla
+ * @param {string} tabla - Nombre de la tabla en inglés
+ * @returns {string} - Nombre de la tabla en español
+ */
+const traducirTabla = (tabla) => {
+  const tablas = {
+    'roles': 'Roles',
+    'perfiles': 'Perfiles/Usuarios',
+    'permisos': 'Permisos',
+    'rol_permisos': 'Permisos de Roles',
+    'turnos': 'Turnos',
+    'pedidos': 'Pedidos',
+    'productos': 'Productos',
+    'servicios': 'Servicios',
+    'pedido_productos': 'Detalle de Pedidos',
+  };
+  return tablas[tabla] || tabla;
+};
+
+/**
+ * Extrae los cambios relevantes de los datos JSON
+ * @param {string} datosAnteriores - JSON con datos anteriores
+ * @param {string} datosNuevos - JSON con datos nuevos
+ * @param {string} accion - Tipo de acción (INSERT, UPDATE, DELETE)
+ * @returns {string} - Descripción de los cambios
+ */
+const extraerCambios = (datosAnteriores, datosNuevos, accion) => {
+  try {
+    if (accion === 'INSERT') {
+      const datos = JSON.parse(datosNuevos || '{}');
+      const camposRelevantes = ['nombre', 'descripcion', 'estado', 'activo', 'precio', 'stock', 'estado_pago', 'estado_envio'];
+      const cambios = [];
+      
+      for (const campo of camposRelevantes) {
+        if (datos[campo] !== undefined) {
+          cambios.push(`${campo}: ${datos[campo]}`);
+        }
+      }
+      
+      return cambios.length > 0 ? cambios.join(', ') : 'Nuevo registro creado';
+    }
+    
+    if (accion === 'DELETE') {
+      const datos = JSON.parse(datosAnteriores || '{}');
+      const identificador = datos.nombre || datos.id || datos.id_rol || datos.id_producto || datos.id_servicio || 'Registro';
+      return `Eliminado: ${identificador}`;
+    }
+    
+    if (accion === 'UPDATE') {
+      const anterior = JSON.parse(datosAnteriores || '{}');
+      const nuevo = JSON.parse(datosNuevos || '{}');
+      const cambios = [];
+      
+      // Campos a ignorar en el resumen
+      const camposIgnorados = ['created_at', 'updated_at', 'creado_en', 'actualizado_en'];
+      
+      for (const key in nuevo) {
+        if (camposIgnorados.includes(key)) continue;
+        
+        if (anterior[key] !== nuevo[key]) {
+          cambios.push(`${key}: ${anterior[key]} → ${nuevo[key]}`);
+        }
+      }
+      
+      return cambios.length > 0 ? cambios.join(', ') : 'Sin cambios detectados';
+    }
+    
+    return '-';
+  } catch (error) {
+    return 'Error al procesar cambios';
+  }
+};
+
+/**
+ * Formatea datos de auditoría para exportación
+ * @param {Array} auditoria - Array de registros de auditoría desde Supabase
+ * @returns {Array} - Array formateado para Excel
+ */
+export const formatAuditoriaParaExcel = (auditoria) => {
+  return auditoria.map(registro => {
+    // Obtener información del usuario
+    let usuario = 'Sistema';
+    
+    if (registro.perfiles) {
+      // Construir el nombre completo del usuario
+      const nombreCompleto = `${registro.perfiles.nombre || ''} ${registro.perfiles.apellido || ''}`.trim();
+      const email = registro.perfiles.email;
+      
+      // Preferir email, pero si no existe, usar el nombre
+      if (email) {
+        usuario = email;
+      } else if (nombreCompleto) {
+        usuario = nombreCompleto;
+      } else if (registro.usuario_id) {
+        usuario = registro.usuario_id;
+      }
+    } else if (registro.usuario_id) {
+      usuario = registro.usuario_id;
+    }
+    
+    return {
+      'ID': registro.id_auditoria,
+      'Fecha y Hora': registro.creado_en ? new Date(registro.creado_en).toLocaleString('es-AR') : 'N/A',
+      'Usuario': usuario,
+      'Acción': traducirAccion(registro.accion),
+      'Entidad': traducirTabla(registro.tabla),
+      'ID Registro': registro.registro_id || '-',
+      'Cambios': extraerCambios(registro.datos_anteriores, registro.datos_nuevos, registro.accion),
+    };
+  });
+};

@@ -85,7 +85,7 @@ const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart, user, setCu
       // 3. Todo OK - limpiar carrito y mostrar éxito
       toast({
         title: '¡Pedido Realizado! 🎉',
-        description: 'Tu pedido ha sido procesado exitosamente',
+        description: 'Tu pedido ha sido realizado exitosamente. En breve un asesor se pondrá en contacto contigo para concretar el pedido.',
       });
 
       clearCart();

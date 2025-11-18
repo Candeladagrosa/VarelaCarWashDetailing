@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, User, Calendar, Tag, Trash2, Edit, Save, X, Plus, Minus, Loader2 } from 'lucide-react';
+import { Search, User, Calendar, Tag, Trash2, Edit, Save, X, Plus, Minus, Loader2, Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -237,12 +237,55 @@ const PedidosAdmin = () => {
           return (
             <motion.div key={pedido.id_pedido} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }} className="glass-effect rounded-2xl p-6">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0 mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">Pedido #{pedido.id_pedido}</h3>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-800 mb-3">Pedido #{pedido.id_pedido}</h3>
                   {pedido.cliente_data && (
-                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-gray-600">
-                      <div className="flex items-center space-x-2"><User className="w-4 h-4" /><span>{pedido.cliente_data.nombre} {pedido.cliente_data.apellido}</span></div>
-                      <div className="flex items-center space-x-2"><Calendar className="w-4 h-4" /><span>{new Date(pedido.fecha_pedido).toLocaleDateString()}</span></div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-gray-600">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4 flex-shrink-0" />
+                        <span>{pedido.cliente_data.nombre} {pedido.cliente_data.apellido}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="w-4 h-4 flex-shrink-0" />
+                        <span>{new Date(pedido.fecha_pedido).toLocaleDateString()}</span>
+                      </div>
+                      {pedido.cliente_data.email && (
+                        <div className="flex items-center space-x-2">
+                          <Mail className="w-4 h-4 flex-shrink-0" />
+                          <a 
+                            href={`mailto:${pedido.cliente_data.email}`} 
+                            className="text-red-600 hover:text-red-700 hover:underline transition-colors"
+                          >
+                            {pedido.cliente_data.email}
+                          </a>
+                        </div>
+                      )}
+                      {pedido.cliente_data.telefono && (
+                        <div className="flex items-center space-x-2">
+                          <Phone className="w-4 h-4 flex-shrink-0" />
+                          <a 
+                            href={`https://wa.me/${pedido.cliente_data.telefono.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-600 hover:text-green-700 hover:underline transition-colors"
+                          >
+                            {pedido.cliente_data.telefono}
+                          </a>
+                        </div>
+                      )}
+                      {pedido.cliente_data.direccion && (
+                        <div className="flex items-center space-x-2 md:col-span-2">
+                          <MapPin className="w-4 h-4 flex-shrink-0" />
+                          <a 
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pedido.cliente_data.direccion)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                          >
+                            {pedido.cliente_data.direccion}
+                          </a>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
